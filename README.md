@@ -8,7 +8,7 @@ No necesitas programar.
   <img src="docs/demo.gif" alt="Video de ejemplo: Sofi y Chispa explican por qué el cielo es azul" width="300">
 </p>
 
-**▶ Tutorial paso a paso en YouTube:** [ver el tutorial]([https://www.youtube.com/@miguelcotrinaia](https://youtu.be/1xqbsVt29h0))
+**▶ Tutorial paso a paso en YouTube:** [ver el tutorial](https://youtu.be/1xqbsVt29h0)
 <!-- PENDIENTE: reemplazar el enlace de arriba por el del video tutorial -->
 
 ---
