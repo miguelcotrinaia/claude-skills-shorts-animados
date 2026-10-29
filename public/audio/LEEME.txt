@@ -1,0 +1,9 @@
+Aquí van las voces de los videos, una por video, con el mismo nombre que el id del video:
+
+  public/audio/<id>.mp3   (también vale .wav o .m4a)
+
+Ejemplo: para el video "cielo-azul-tiktok" → public/audio/cielo-azul-tiktok.mp3
+
+- Si usas ElevenLabs con tu clave, el audio se guarda aquí solo (npm run voz:ia -- <id>).
+- Si grabas tu voz o usas otra app (CapCut, ElevenLabs web…), guarda aquí el audio con ese nombre
+  y luego corre: npm run sincronizar -- <id>

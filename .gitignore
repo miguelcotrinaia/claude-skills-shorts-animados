@@ -1,0 +1,9 @@
+node_modules
+out
+.env
+whisper.cpp
+*.log
+public/audio/*
+!public/audio/LEEME.txt
+public/captions/*.backup.json
+.claude/settings.local.json

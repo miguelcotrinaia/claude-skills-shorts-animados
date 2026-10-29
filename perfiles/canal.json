@@ -1,0 +1,30 @@
+{
+  "plantilla": true,
+  "nombre": "Ciencia de Bolsillo",
+  "handle": "@tucanal",
+  "handleHablado": "tu canal",
+  "lema": "CIENCIA DE BOLSILLO",
+  "idioma": "es-PE",
+  "redes": ["TikTok", "YouTube", "Instagram"],
+  "cierre": {
+    "titulo": "SÍGUEME EN TODAS LAS REDES",
+    "recordatorio": "+ Sígueme",
+    "cursoPorDefecto": "Más en el video relacionado"
+  },
+  "plataformas": {
+    "tiktok": {
+      "estilo": "agil",
+      "acento": "#FF5FA2",
+      "acento2": "#FFD23F",
+      "alerta": "#FF6B5C",
+      "fondo": "#130F18"
+    },
+    "youtube": {
+      "estilo": "clase",
+      "acento": "#6C8CFF",
+      "acento2": "#FFD23F",
+      "alerta": "#FF6B5C",
+      "fondo": "#0E1119"
+    }
+  }
+}

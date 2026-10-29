@@ -1,0 +1,93 @@
+{
+  "plantilla": true,
+  "principal": {
+    "nombre": "Sofi",
+    "rol": "Presentadora. Explica cada tema con ejemplos de la vida diaria.",
+    "personalidad": "Curiosa, cercana y paciente. Habla en segunda persona y sonríe al explicar.",
+    "look": {
+      "skin": "#C68A64",
+      "hair": "#1A1414",
+      "hairStyle": "cola",
+      "beard": "ninguna",
+      "glasses": "ninguno",
+      "outfit": "polo",
+      "top": "#F2C230",
+      "pants": "#2E3550",
+      "shoes": "#15161C",
+      "accent": "#FF5FA2",
+      "accessory": "audifonos"
+    },
+    "lookAlterno": {
+      "outfit": "hoodie",
+      "top": "#5B6CFF"
+    }
+  },
+  "secundario": {
+    "nombre": "Chispa",
+    "tipo": "foco",
+    "rol": "Compañero con humor. Hace las preguntas que haría el público y a veces se equivoca para que Sofi lo corrija.",
+    "personalidad": "Impulsivo, entusiasta y un poco despistado. Se ilumina cuando entiende algo.",
+    "colores": {
+      "cuerpo": "#FFD23F",
+      "luz": "#FFF1A8"
+    }
+  },
+  "extras": {
+    "profe": {
+      "skin": "#E0B48C",
+      "hair": "#9A9A96",
+      "hairStyle": "corto",
+      "beard": "barba",
+      "beardColor": "#9A9A96",
+      "glasses": "redondos",
+      "glassesColor": "#3A3A3A",
+      "outfit": "camisa",
+      "top": "#ECEAE4",
+      "pants": "#3A3F4A",
+      "accent": "#6C8CFF"
+    },
+    "cientifica": {
+      "skin": "#B57A55",
+      "hair": "#2A1A12",
+      "hairStyle": "mono",
+      "glasses": "rectangulares",
+      "glassesColor": "#222222",
+      "outfit": "blazer",
+      "top": "#E6E6E6",
+      "inner": "#5B6CFF",
+      "pants": "#2D2F3A",
+      "accent": "#FF5FA2"
+    },
+    "estudiante": {
+      "skin": "#EBC09B",
+      "hair": "#4A2E1C",
+      "hairStyle": "rulos",
+      "outfit": "hoodie",
+      "top": "#3FB28F",
+      "pants": "#2F3A55",
+      "accent": "#FFD23F"
+    },
+    "abuelo": {
+      "skin": "#D9A27C",
+      "hair": "#D8D8D2",
+      "hairStyle": "calvo",
+      "beard": "bigote",
+      "beardColor": "#D8D8D2",
+      "glasses": "redondos",
+      "glassesColor": "#5A4632",
+      "outfit": "camisa",
+      "top": "#8C6A4F",
+      "pants": "#3B3A36"
+    },
+    "vecina": {
+      "skin": "#F0C7A4",
+      "hair": "#7A3B1E",
+      "hairStyle": "largo",
+      "outfit": "polo",
+      "top": "#E5677A",
+      "pants": "#3B3550",
+      "accent": "#FFD23F"
+    }
+  },
+  "miniBots": ["#8A93B8", "#A7B5A0", "#C9A0B8", "#B3A58E", "#8FB3C9"]
+}

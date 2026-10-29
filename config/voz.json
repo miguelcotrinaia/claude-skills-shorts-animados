@@ -1,0 +1,11 @@
+{
+  "proveedor": "elevenlabs",
+  "voiceId": "l1zE9xgNpUTaQCZzpNJa",
+  "modelo": "eleven_multilingual_v2",
+  "ajustes": {
+    "stability": 0.45,
+    "similarity_boost": 0.8,
+    "style": 0.25,
+    "use_speaker_boost": true
+  }
+}
