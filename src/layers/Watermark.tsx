@@ -1,10 +1,12 @@
 import React from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { Human } from "../characters/Human";
-import { PRINCIPAL } from "../characters/cast";
+import { Secundario, CAJA_CARA_SECUNDARIO } from "../characters/Secundario";
+import { PERSONAS, PRINCIPAL } from "../characters/cast";
 import { color, font, layout } from "../theme";
 import { clamp01, pop } from "../lib/anim";
-import { CIERRE, HANDLE as HANDLE_CANAL, REDES as REDES_CANAL } from "../perfiles";
+import type { Rol } from "../engine/types";
+import { CIERRE, EXTRA_POR_DEFECTO, HANDLE as HANDLE_CANAL, REDES as REDES_CANAL } from "../perfiles";
 
 // El @usuario y las redes salen de perfiles/canal.json
 export const HANDLE = HANDLE_CANAL;
@@ -16,6 +18,53 @@ export const MiniCara: React.FC<{ size: number; frame: number; borde?: string }>
     <svg width={size} height={size} viewBox="-72 -222 150 150">
       <Human look={PRINCIPAL} expression="confiado" frame={frame} />
     </svg>
+  </div>
+);
+
+/** Cara de quien habla (subtítulos): principal, secundario, un extra o el micrófono de la voz en off */
+export const Avatar: React.FC<{ quien: Rol; extra?: string; size: number; frame: number; borde: string; hablando?: boolean }> = ({
+  quien,
+  extra,
+  size,
+  frame,
+  borde,
+  hablando,
+}) => (
+  <div
+    style={{
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      overflow: "hidden",
+      background: color.panel,
+      border: `4px solid ${borde}`,
+      flexShrink: 0,
+      boxShadow: `0 5px 0 ${color.sombra}`,
+    }}
+  >
+    {quien === "principal" && (
+      <svg width={size} height={size} viewBox="-72 -222 150 150">
+        <Human look={PRINCIPAL} expression="feliz" frame={frame} speaking={hablando} />
+      </svg>
+    )}
+    {quien === "extra" && (
+      <svg width={size} height={size} viewBox="-72 -222 150 150">
+        <Human look={PERSONAS[extra ?? EXTRA_POR_DEFECTO] ?? Object.values(PERSONAS)[0] ?? PRINCIPAL} expression="neutral" frame={frame} speaking={hablando} seed={3} />
+      </svg>
+    )}
+    {quien === "secundario" && (
+      <svg width={size} height={size} viewBox={CAJA_CARA_SECUNDARIO}>
+        <Secundario frame={frame} expression="feliz" speaking={hablando} />
+      </svg>
+    )}
+    {quien === "narrador" && (
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <rect x={38} y={18} width={24} height={40} rx={12} fill={borde} />
+        <path d="M28 46 a22 22 0 0 0 44 0" fill="none" stroke={borde} strokeWidth={6} />
+        <rect x={47} y={68} width={6} height={12} fill={borde} />
+        <rect x={36} y={80} width={28} height={6} rx={3} fill={borde} />
+      </svg>
+    )}
   </div>
 );
 
@@ -32,8 +81,9 @@ export const Watermark: React.FC<{ ocultar?: boolean }> = ({ ocultar }) => {
           gap: 12,
           padding: "6px 22px 6px 8px",
           borderRadius: 40,
-          background: "rgba(0,0,0,0.38)",
+          background: color.panel,
           border: `2px solid ${color.panelEdge}`,
+          boxShadow: `0 4px 0 ${color.sombra}`,
         }}
       >
         <MiniCara size={44} frame={frame} />
@@ -55,7 +105,7 @@ export const Recordatorio: React.FC<{ desde: number; dur?: number }> = ({ desde,
     <div
       style={{
         position: "absolute",
-        top: 448,
+        top: 112,
         left: 0,
         right: 0,
         display: "flex",
@@ -72,7 +122,7 @@ export const Recordatorio: React.FC<{ desde: number; dur?: number }> = ({ desde,
           padding: "10px 28px 10px 12px",
           borderRadius: 40,
           background: color.lime,
-          boxShadow: "0 8px 0 rgba(0,0,0,0.35)",
+          boxShadow: `0 8px 0 ${color.sombra}`,
         }}
       >
         <MiniCara size={52} frame={frame} borde={color.ink} />

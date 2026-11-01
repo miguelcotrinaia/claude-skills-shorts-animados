@@ -32,14 +32,25 @@ export const OPCIONES = {
   glasses: ["ninguno", "rectangulares", "redondos"],
   outfit: ["blazer", "polo", "hoodie", "camisa"],
   accessory: ["ninguno", "corbata", "audifonos"],
-  tipoSecundario: ["robot", "foco", "humano"],
+  tipoSecundario: ["robot", "foco", "panda", "humano"],
+  especie: ["persona", "perro"],
   base: ["orugas", "ruedas", "flotante"],
   estilo: ["agil", "clase"],
+  fondos: ["rotar", "marca", "mezclar"],
 };
 
 const errores = [];
 const avisos = [];
 const esHex = (v) => typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
+const esVoiceId = (v) => typeof v === "string" && /^[A-Za-z0-9]{20}$/.test(v);
+const revisarVoz = (voz, donde, obligatoria = false) => {
+  if (voz === undefined) {
+    if (obligatoria) avisos.push(`${donde}: sin voz propia (usa la voz por defecto de config/voces.json)`);
+    return;
+  }
+  if (!voz || typeof voz !== "object") return errores.push(`${donde} debe ser { "voiceId": "..." }`);
+  if (!esVoiceId(voz.voiceId)) errores.push(`${donde}.voiceId "${voz.voiceId ?? ""}" no parece un ID de voz de ElevenLabs (20 letras y números)`);
+};
 
 const leer = (nombre) => {
   const p = path.join(DIR, nombre);
@@ -75,6 +86,9 @@ const revisarLook = (look, donde) => {
     }
     if (!ops.includes(look[k])) errores.push(`${donde}.${k} = "${look[k]}" no existe. Opciones: ${ops.join(", ")}`);
   }
+  if (look.especie !== undefined && !OPCIONES.especie.includes(look.especie)) {
+    errores.push(`${donde}.especie = "${look.especie}" no existe. Opciones: ${OPCIONES.especie.join(", ")}`);
+  }
 };
 
 // ── personajes ──────────────────────────────────────────────
@@ -89,14 +103,23 @@ if (P) {
   if (!s?.nombre) errores.push("secundario.nombre es obligatorio");
   if (!OPCIONES.tipoSecundario.includes(s?.tipo)) errores.push(`secundario.tipo debe ser: ${OPCIONES.tipoSecundario.join(", ")}`);
   if (s?.tipo === "humano") revisarLook(s.look, "secundario.look");
-  if (s?.tipo === "robot" || s?.tipo === "foco") {
-    if (s.colores?.cuerpo !== undefined && !esHex(s.colores.cuerpo)) errores.push("secundario.colores.cuerpo debe ser #RRGGBB");
-    if (s.colores?.luz !== undefined && !esHex(s.colores.luz)) errores.push("secundario.colores.luz debe ser #RRGGBB");
+  if (s?.tipo === "robot" || s?.tipo === "foco" || s?.tipo === "panda") {
+    for (const k of ["cuerpo", "luz", "manchas"]) {
+      if (s.colores?.[k] !== undefined && !esHex(s.colores[k])) errores.push(`secundario.colores.${k} debe ser #RRGGBB`);
+    }
   }
   if (s?.tipo === "robot" && s.colores?.base !== undefined && !OPCIONES.base.includes(s.colores.base)) {
     errores.push(`secundario.colores.base debe ser: ${OPCIONES.base.join(", ")}`);
   }
-  for (const [k, look] of Object.entries(P.extras ?? {})) revisarLook(look, `extras.${k}`);
+  for (const [k, look] of Object.entries(P.extras ?? {})) {
+    if (!/^[a-z0-9-]+$/.test(k)) errores.push(`extras: el nombre "${k}" debe ir en minúsculas, sin tildes ni espacios`);
+    revisarLook(look, `extras.${k}`);
+    revisarVoz(look.voz, `extras.${k}.voz`);
+  }
+  revisarVoz(P.narrador?.voz, "narrador.voz", true);
+  revisarVoz(P.principal?.voz, "principal.voz", true);
+  revisarVoz(P.secundario?.voz, "secundario.voz", true);
+  revisarVoz(P.vozExtras, "vozExtras", true);
   if (Object.keys(P.extras ?? {}).length > 6) avisos.push("Hay más de 6 extras: la hoja de personajes solo muestra 6 (en los videos se usan todos).");
   for (const c of P.miniBots ?? []) if (!esHex(c)) errores.push(`miniBots: "${c}" debe ser #RRGGBB`);
 }
@@ -114,9 +137,11 @@ if (C) {
       continue;
     }
     if (!OPCIONES.estilo.includes(x.estilo)) errores.push(`canal.plataformas.${pl}.estilo debe ser: agil o clase`);
-    for (const k of ["acento", "acento2"]) if (!esHex(x[k])) errores.push(`canal.plataformas.${pl}.${k} debe ser #RRGGBB`);
-    for (const k of ["alerta", "fondo"]) if (x[k] !== undefined && !esHex(x[k])) errores.push(`canal.plataformas.${pl}.${k} debe ser #RRGGBB`);
   }
+  const fo = C.fondos ?? {};
+  if (fo.usar !== undefined && !OPCIONES.fondos.includes(fo.usar)) errores.push(`canal.fondos.usar debe ser: ${OPCIONES.fondos.join(", ")}`);
+  if ((fo.usar === "marca" || fo.usar === "mezclar") && !esHex(fo.marca?.acento)) errores.push("canal.fondos.marca.acento (#RRGGBB) es obligatorio para usar tus colores de marca");
+  for (const k of ["acento", "acento2", "oscuro", "claro"]) if (fo.marca?.[k] !== undefined && !esHex(fo.marca[k])) errores.push(`canal.fondos.marca.${k} debe ser #RRGGBB`);
 }
 
 // ── línea editorial ─────────────────────────────────────────
@@ -133,14 +158,18 @@ if (P) {
   console.log(`  principal:  ${P.principal?.nombre} — ${P.principal?.rol ?? ""}`);
   console.log(`  secundario: ${s.nombre} (${s.tipo}${s.tipo === "robot" ? ` · ${s.colores?.base ?? "ruedas"}` : ""}) — ${s.rol ?? ""}`);
   console.log(`  extras:     ${Object.keys(P.extras ?? {}).join(", ") || "ninguno"}`);
+  const voces = [P.narrador?.voz?.voiceId, P.principal?.voz?.voiceId, P.secundario?.voz?.voiceId, P.vozExtras?.voiceId].filter(Boolean);
+  console.log(`  voces:      voz en off ${P.narrador?.voz?.voiceId ?? "(por defecto)"} · ${P.principal?.nombre} ${P.principal?.voz?.voiceId ?? "(por defecto)"} · ${s.nombre} ${s.voz?.voiceId ?? "(por defecto)"} · extras ${P.vozExtras?.voiceId ?? "(por defecto)"}`);
+  if (voces.length > 1 && new Set(voces).size === 1) console.log("              (todos con la misma voz: se distinguen por el color y la cara del subtítulo)");
 }
 if (C) {
   console.log(`Canal: ${marca(C.plantilla)}`);
   console.log(`  ${C.nombre} · ${C.handle} (se lee "${C.handleHablado ?? C.handle}") · lema "${C.lema}" · idioma ${C.idioma ?? "es-PE"}`);
   for (const pl of ["tiktok", "youtube"]) {
     const x = C.plataformas?.[pl];
-    if (x) console.log(`  ${pl.padEnd(8)} estilo ${x.estilo} · acento ${x.acento} · acento2 ${x.acento2} · fondo ${x.fondo ?? "por defecto"}`);
+    if (x) console.log(`  ${pl.padEnd(8)} estilo ${x.estilo}`);
   }
+  console.log(`  fondos:  ${C.fondos?.usar ?? "rotar"}${C.fondos?.marca ? ` · marca ${C.fondos.marca.acento ?? ""} ${C.fondos.marca.acento2 ?? ""}` : ""}`);
 }
 if (ed) console.log(`Línea editorial: ${marca(edPlantilla)} (perfiles/linea-editorial.md)`);
 

@@ -1,11 +1,16 @@
-// Renderiza un video a out/<id>.mp4   ·   Uso: npm run render -- <id>   (o --todos)
+// Renderiza un video a out/<id>.mp4
+//   npm run render -- <id>       → un MP4 (con voz) o out/<id>-SIN-VOZ.mp4 (vista previa en silencio)
+//   npm run render -- --todos    → todos los videos
+// En PowerShell también vale sin guiones: npm run render <id>
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, loadVideos } from "./lib/common.mjs";
+import { ROOT, bandera, loadVideos, tokensArgs } from "./lib/common.mjs";
 
-const arg = process.argv[2];
+const tokens = tokensArgs();
+const todos = bandera(tokens, "todos");
 const videos = await loadVideos();
+const arg = todos ? "--todos" : tokens.find((t) => t !== "todos");
 if (!arg) {
   console.error(`Uso: npm run render -- <id>   ·   Videos: ${videos.map((v) => v.id).join(", ")}`);
   process.exit(1);
@@ -13,8 +18,9 @@ if (!arg) {
 const ids = arg === "--todos" ? videos.map((v) => v.id) : [arg];
 
 // Evita exportar con voz sin sincronizar (la voz iría a otro ritmo que el video)
+const audioDe = (id) => ["mp3", "wav", "m4a"].map((e) => path.join(ROOT, "public", "audio", `${id}.${e}`)).find((p) => fs.existsSync(p));
 const revisarVoz = (id) => {
-  const audio = ["mp3", "wav", "m4a"].map((e) => path.join(ROOT, "public", "audio", `${id}.${e}`)).find((p) => fs.existsSync(p));
+  const audio = audioDe(id);
   if (!audio) return true; // sin voz: vista previa con tiempos estimados
   const caps = path.join(ROOT, "public", "captions", `${id}.json`);
   if (!fs.existsSync(caps)) {
@@ -32,12 +38,25 @@ const revisarVoz = (id) => {
 
 let fallo = false;
 for (const id of ids) {
+  if (!videos.find((v) => v.id === id)) {
+    console.error(`No encontré el video "${id}". Disponibles: ${videos.map((x) => x.id).join(", ")}`);
+    fallo = true;
+    continue;
+  }
   if (!revisarVoz(id)) {
     fallo = true;
     continue;
   }
+  // Sin voz, el MP4 sale en silencio: se nombra distinto para no confundirlo con el video final
+  const conVoz = Boolean(audioDe(id));
+  const salida = conVoz ? `out/${id}.mp4` : `out/${id}-SIN-VOZ.mp4`;
+  if (!conVoz) {
+    console.log(`\n⚠ ${id} no tiene voz (falta public/audio/${id}.mp3): el MP4 sale EN SILENCIO, como vista previa.`);
+    console.log(`  Para el video final: npm run voz:ia -- ${id}  (o tu audio + npm run sincronizar -- ${id}) y vuelve a exportar.`);
+  }
   console.log(`\n▶ Renderizando ${id}…`);
-  execSync(`npx remotion render ${id} out/${id}.mp4 --codec=h264 --crf=18`, { stdio: "inherit", cwd: ROOT });
-  console.log(`✔ out/${id}.mp4`);
+  // --log=error: sin la barra de progreso línea por línea (menos texto en la conversación con Claude)
+  execSync(`npx remotion render ${id} ${salida} --codec=h264 --crf=18 --log=error`, { stdio: "inherit", cwd: ROOT });
+  console.log(`✔ ${salida}${conVoz ? " (con voz)" : " (sin voz, en silencio)"}`);
 }
 process.exit(fallo ? 1 : 0);

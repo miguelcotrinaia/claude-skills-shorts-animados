@@ -2,7 +2,7 @@ import React from "react";
 import { Block, Shadow, shade } from "../lib/voxel";
 import { blink, bob, talk } from "../lib/anim";
 
-// Humano voxel paramétrico. Sirve para el personaje principal y para los personajes extra.
+// Humano voxel paramétrico. Sirve para el personaje principal, los extras y el secundario humano.
 
 export type HairStyle = "peinado" | "corto" | "rulos" | "cresta" | "largo" | "calvo" | "mono" | "cola";
 export type Beard = "ninguna" | "candado" | "barba" | "bigote" | "sombra";
@@ -10,7 +10,11 @@ export type Glasses = "ninguno" | "rectangulares" | "redondos";
 export type Outfit = "blazer" | "polo" | "hoodie" | "camisa";
 export type Accessory = "ninguno" | "corbata" | "audifonos";
 
+export type Especie = "persona" | "perro";
+
 export type HumanLook = {
+  /** "perro" = cabeza de perro (skin = pelaje, hair = orejas y mechón; ignora hairStyle y beard) */
+  especie?: Especie;
   skin: string;
   hair: string;
   beardColor?: string;
@@ -37,7 +41,8 @@ export type Expression =
   | "guino"
   | "confiado";
 
-export type Arms = "abajo" | "saludo" | "senalar" | "celebrar" | "sostener" | "pensar" | "explicar";
+export type Arms = "abajo" | "saludo" | "senalar" | "celebrar" | "sostener" | "pensar" | "explicar" | "encoger" | "facepalm" | "senalar-arriba";
+export type Cabeza = "asentir" | "negar" | "inclinar" | null;
 
 export type HumanProps = {
   look: HumanLook;
@@ -47,6 +52,11 @@ export type HumanProps = {
   speaking?: boolean;
   walking?: boolean;
   seed?: number;
+  /** -1 mira a su izquierda (pantalla), 1 a la derecha */
+  mirar?: number;
+  cabeza?: Cabeza;
+  /** 0..1 salto (sorpresa, celebración) */
+  salto?: number;
 };
 
 const armAngles = (arms: Arms, f: number): [number, number] => {
@@ -65,6 +75,12 @@ const armAngles = (arms: Arms, f: number): [number, number] => {
       return [6, -152];
     case "explicar":
       return [38 + s * 8, -48 - Math.sin(f / 9) * 14];
+    case "encoger":
+      return [62 + s * 3, -62 - s * 3];
+    case "facepalm":
+      return [8, -168];
+    case "senalar-arriba":
+      return [6, -138 + s * 4];
     default:
       return [4 + Math.sin(f / 23) * 2, -4 - Math.sin(f / 23) * 2];
   }
@@ -78,8 +94,22 @@ export const Human: React.FC<HumanProps> = ({
   speaking = false,
   walking = false,
   seed = 0,
+  mirar = 0,
+  cabeza = null,
+  salto = 0,
 }) => {
   const f = frame;
+  const mirarX = Math.max(-1, Math.min(1, mirar)) * 6;
+  const cabezaT =
+    cabeza === "asentir"
+      ? `translate(0 ${Math.max(0, Math.sin(f / 3.2)) * 5}) rotate(${Math.max(0, Math.sin(f / 3.2)) * 4} 0 -92)`
+      : cabeza === "negar"
+        ? `rotate(${Math.sin(f / 2.6) * 7} 0 -92)`
+        : cabeza === "inclinar"
+          ? `rotate(-7 0 -92)`
+          : "";
+  const saltoY = -Math.max(0, salto) * 46;
+  const squash = salto > 0 ? 1 + Math.sin(salto * Math.PI) * 0.04 : 1;
   const lift = walking ? Math.abs(Math.sin(f / 4)) * 6 : 0;
   const breathe = bob(f, 52, 1.6, seed * 10);
   const [la, ra] = armAngles(arms, f);
@@ -90,6 +120,7 @@ export const Human: React.FC<HumanProps> = ({
   const beardC = look.beardColor ?? hair;
   const gl = look.glasses ?? "ninguno";
   const glC = look.glassesColor ?? "#0F0F0F";
+  const perro = look.especie === "perro";
   const accent = look.accent ?? "#C8F25A";
 
   const legL = walking ? Math.sin(f / 4) * 7 : 0;
@@ -195,9 +226,25 @@ export const Human: React.FC<HumanProps> = ({
     }
   };
 
+  // --- Perro: orejas caídas y mechón (en lugar del pelo) ---
+  const DogEars = () => {
+    const sway = Math.sin(f / 13 + seed) * 3;
+    return (
+      <g>
+        <Block x={-26} y={-190} w={52} h={12} d={22} c={hair} />
+        <g transform={`rotate(${8 + sway} -52 -180)`}>
+          <Block x={-70} y={-184} w={24} h={62} d={8} c={hair} />
+        </g>
+        <g transform={`rotate(${-8 - sway} 52 -180)`}>
+          <Block x={46} y={-184} w={24} h={62} d={8} c={hair} />
+        </g>
+      </g>
+    );
+  };
+
   // --- Pelo detrás de la cabeza (se dibuja antes que la cabeza) ---
   const HairBack = () => {
-    if (look.hairStyle !== "cola") return null;
+    if (perro || look.hairStyle !== "cola") return null;
     const sway = Math.sin(f / 11 + seed) * 3;
     return (
       <g transform={`rotate(${sway} 82 -200)`}>
@@ -300,7 +347,7 @@ export const Human: React.FC<HumanProps> = ({
       }
     })();
 
-    const beard = look.beard ?? "ninguna";
+    const beard = perro ? "ninguna" : look.beard ?? "ninguna";
     const Beard = () => {
       switch (beard) {
         case "candado":
@@ -362,8 +409,16 @@ export const Human: React.FC<HumanProps> = ({
     return (
       <g>
         <Beard />
+        {perro && (
+          <g>
+            {/* hocico con nariz */}
+            <Block x={-26} y={-136} w={52} h={30} d={12} c={shade(look.skin, 0.35)} />
+            <rect x={-11} y={-136} width={22} height={11} rx={3} fill="#1A1414" />
+            <rect x={-7} y={-134} width={6} height={3} fill="#fff" opacity={0.4} />
+          </g>
+        )}
         {mouth}
-        {eyes}
+        <g transform={`translate(${mirarX} 0)`}>{eyes}</g>
         <Glasses />
         {brows}
         {(expression === "feliz" || expression === "confiado") && (
@@ -430,8 +485,8 @@ export const Human: React.FC<HumanProps> = ({
 
   return (
     <g>
-      <Shadow w={128} />
-      <g transform={`translate(0 ${-lift + breathe * 0})`}>
+      <Shadow w={128 * (1 + saltoY / 300)} />
+      <g transform={`translate(0 ${-lift + saltoY}) scale(${1 / squash} ${squash})`}>
         {/* piernas */}
         <g transform={`translate(0 ${legL > 0 ? -legL : 0})`}>
           <Block x={-32} y={-38} w={24} h={30} d={12} c={look.pants} />
@@ -445,18 +500,18 @@ export const Human: React.FC<HumanProps> = ({
           <Arm side="L" angle={la} />
           <Torso />
           {/* cabeza */}
-          <g transform={`translate(0 ${breathe})`}>
+          <g transform={`translate(0 ${breathe}) ${cabezaT}`}>
             <HairBack />
             <Block x={-52} y={-180} w={104} h={88} d={26} c={look.skin} side={skinSide} />
             {/* orejas */}
-            <Block x={-60} y={-146} w={8} h={18} d={0} c={shade(look.skin, -0.08)} />
+            {!perro && <Block x={-60} y={-146} w={8} h={18} d={0} c={shade(look.skin, -0.08)} />}
             {look.accessory === "audifonos" && (
               <g>
                 <rect x={-64} y={-206} width={150} height={8} fill="#1d1d1d" />
                 <Block x={-68} y={-156} w={16} h={30} d={6} c={accent} />
               </g>
             )}
-            <Hair />
+            {perro ? <DogEars /> : <Hair />}
             <Face />
           </g>
           <Arm side="R" angle={ra} />

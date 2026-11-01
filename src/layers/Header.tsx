@@ -42,18 +42,41 @@ export const Kicker: React.FC<{ serie: string; progress: number; capitulo?: stri
         <span style={{ color: color.ink, background: color.lime, borderRadius: 8, padding: "2px 10px", letterSpacing: 2, fontWeight: 700 }}>{capitulo}</span>
       )}
     </div>
-    <div style={{ marginTop: 14, width: 720, height: 4, background: "rgba(238,243,234,0.10)", borderRadius: 4, overflow: "hidden" }}>
+    <div style={{ marginTop: 14, width: 720, height: 4, background: color.dim, borderRadius: 4, overflow: "hidden" }}>
       <div style={{ width: `${progress * 100}%`, height: "100%", background: color.lime, borderRadius: 4 }} />
     </div>
   </div>
 );
 
 /** Título de escena; si es igual al de la escena anterior no se re-anima. */
-export const SceneTitle: React.FC<{ text: string; animate: boolean }> = ({ text, animate }) => {
+export const SceneTitle: React.FC<{ text: string; animate: boolean; modo?: "grande" | "etiqueta" | "oculto" }> = ({ text, animate, modo = "grande" }) => {
   const frame = useCurrentFrame();
   const perfil = usePerfil();
   const p = animate ? ease(frame, 0, 12) : 1;
   const y = interpolate(p, [0, 1], [40, 0], clamp01);
+  if (modo === "oculto") return null;
+  if (modo === "etiqueta") {
+    return (
+      <div style={{ position: "absolute", top: layout.titleY, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: p, transform: `translateY(${y * 0.6}px)` }}>
+        <div
+          style={{
+            fontFamily: font.title,
+            fontWeight: 800,
+            fontSize: 44,
+            letterSpacing: -0.5,
+            color: color.text,
+            background: color.panel,
+            border: `3px solid ${color.panelEdge}`,
+            borderRadius: 18,
+            padding: "8px 26px 10px",
+            boxShadow: `0 6px 0 ${color.sombra}`,
+          }}
+        >
+          <Accented text={text} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       style={{
@@ -70,7 +93,7 @@ export const SceneTitle: React.FC<{ text: string; animate: boolean }> = ({ text,
         color: color.text,
         opacity: p,
         transform: `translateY(${y}px)`,
-        textShadow: "0 6px 0 rgba(0,0,0,0.35)",
+        textShadow: `0 6px 0 ${color.textShadow}`,
         textWrap: "balance" as React.CSSProperties["textWrap"],
       }}
     >

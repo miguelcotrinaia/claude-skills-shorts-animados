@@ -33,7 +33,7 @@ export const parsearSilencios = (txt) => {
 const pausaTras = (w) => (/[.?!…]["”)]?$/.test(w) ? 6 : /[,;:]["”)]?$/.test(w) ? 3 : 0);
 
 /**
- * escenas: array de textos "dice" (uno por escena)
+ * escenas: array de textos (uno por línea del diálogo; al final de cada uno se espera una pausa)
  * Devuelve subtítulos [{text, startMs, endMs, timestampMs, confidence}]
  */
 export const alinearPorPausas = (escenas, { duracion, silencios }) => {

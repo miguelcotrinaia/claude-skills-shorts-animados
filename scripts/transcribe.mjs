@@ -1,5 +1,6 @@
 // Sincroniza una voz que ya tienes (grabada por ti o generada en ElevenLabs web, CapCut, etc.)
-// con el guion: escenas y subtítulos siguen el ritmo real del audio.
+// con el guion: escenas, gestos y subtítulos siguen el ritmo real del audio.
+// El audio debe seguir el diálogo en orden (una línea tras otra, con una pausa corta entre líneas).
 //
 // 1) Guarda el audio como public/audio/<id>.mp3 (o .wav / .m4a)
 // 2) npm run sincronizar -- <id>        (equivale a: npm run voz:propia -- <id>)
@@ -12,13 +13,13 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, alignScriptToTimings, getVideo, idiomaVoz, scriptText, writeCaptions } from "./lib/common.mjs";
+import { ROOT, alignScriptToTimings, bandera, etiquetar, idiomaVoz, tokensArgs, getVideo, lineasDe, resumenEscenas, scriptText, writeCaptions } from "./lib/common.mjs";
 import { alinearPorPausas, detectarSilencios } from "./lib/pausas.mjs";
 
-const args = process.argv.slice(2);
-const id = args.find((a) => !a.startsWith("--"));
-const forzarWhisper = args.includes("--whisper");
-const forzarPausas = args.includes("--pausas");
+const tokens = tokensArgs();
+const id = tokens.find((t) => t !== "whisper" && t !== "pausas");
+const forzarWhisper = bandera(tokens, "whisper");
+const forzarPausas = bandera(tokens, "pausas");
 if (!id) {
   console.error("Uso: npm run sincronizar -- <id-del-video> [--whisper | --pausas]");
   process.exit(1);
@@ -32,26 +33,16 @@ if (!audio) {
   process.exit(1);
 }
 
-const dices = spec.escenas.map((e) => e.dice);
+const lineas = lineasDe(spec);
+const textos = lineas.map((l) => l.texto);
 const palabras = scriptText(spec).split(/\s+/).filter(Boolean);
 
-const resumen = (captions) => {
-  let k = 0;
-  return spec.escenas
-    .map((e, i) => {
-      const n = e.dice.split(/\s+/).filter(Boolean).length;
-      const c = captions[k];
-      k += n;
-      return `   escena ${i + 1} empieza en ${(c.startMs / 1000).toFixed(2)} s`;
-    })
-    .join("\n");
-};
-
 const guardar = (captions, metodo) => {
-  const p = writeCaptions(id, captions);
-  const fin = captions[captions.length - 1].endMs / 1000;
+  const etiquetados = etiquetar(captions, lineas);
+  const p = writeCaptions(id, etiquetados);
+  const fin = etiquetados[etiquetados.length - 1].endMs / 1000;
   console.log(`\n✔ Sincronizado con ${metodo}: ${path.relative(ROOT, p)} (voz de ${fin.toFixed(1)} s)`);
-  console.log(resumen(captions));
+  console.log(resumenEscenas(spec, etiquetados));
   console.log(`\nSiguiente paso: npm run render -- ${id}`);
 };
 
@@ -63,7 +54,7 @@ if (!forzarWhisper) {
     console.error("No pude leer el audio con ffmpeg. ¿El archivo está completo?");
     process.exit(1);
   }
-  porPausas = alinearPorPausas(dices, det);
+  porPausas = alinearPorPausas(textos, det);
   const ratio = porPausas.limites ? porPausas.emparejados / porPausas.limites : 1;
   const ppm = palabras.length / det.duracion;
   console.log(`Pausas: ${porPausas.emparejados}/${porPausas.limites} puntos del guion encontrados en el audio · ${ppm.toFixed(1)} palabras/s`);

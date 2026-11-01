@@ -30,15 +30,20 @@ const clave = Boolean(process.env.ELEVENLABS_API_KEY);
 if (clave) ok("Clave de ElevenLabs: configurada");
 else info("Clave de ElevenLabs: no configurada → sin clave puedes usar tu propio audio o exportar sin voz");
 
-// Voz por defecto
+// Voces
 let voz = {};
 try {
-  voz = JSON.parse(fs.readFileSync(path.join(ROOT, "config", "voz.json"), "utf8"));
+  voz = JSON.parse(fs.readFileSync(path.join(ROOT, "config", "voces.json"), "utf8"));
 } catch {}
-info(`Voz en off por defecto: ${voz.voiceId || "sin definir"} (${voz.modelo || "eleven_multilingual_v2"})`);
+const PJ = leerPerfil("personajes.json");
+const vozDe = (v) => v?.voiceId || voz.vozPorDefecto || "—";
+info(
+  `Voces (modo ${voz.modo || "lineas"}): voz en off ${vozDe(PJ.narrador?.voz)} · ${PJ.principal?.nombre ?? "principal"} ${vozDe(PJ.principal?.voz)} · ` +
+    `${PJ.secundario?.nombre ?? "secundario"} ${vozDe(PJ.secundario?.voz)} · extras ${vozDe(PJ.vozExtras)}`
+);
 
 // Perfiles
-const P = leerPerfil("personajes.json");
+const P = PJ;
 const C = leerPerfil("canal.json");
 const edPath = path.join(ROOT, "perfiles", "linea-editorial.md");
 const ed = fs.existsSync(edPath) ? fs.readFileSync(edPath, "utf8") : "";
@@ -53,7 +58,7 @@ const linea = (nombre, estado, detalle, comando) => {
   else info(`${nombre}: ${estado === "falta" ? "no existe" : `de EJEMPLO (${detalle})`} → ${comando}`);
 };
 linea("Personajes", estadoP, `${P.principal?.nombre ?? "?"} y ${P.secundario?.nombre ?? "?"}`, "créalos con /personajes");
-linea("Canal", estadoC, C.handle ?? "?", "configúralo con /nuevo-video editorial");
+linea("Canal", estadoC, `${C.handle ?? "?"} · fondos: ${C.fondos?.usar ?? "rotar"}`, "configúralo con /nuevo-video editorial");
 linea("Línea editorial", estadoE, "perfiles/linea-editorial.md", "configúrala con /nuevo-video editorial");
 
 // Videos
@@ -65,4 +70,4 @@ try {
 }
 
 // Línea fácil de leer para el asistente
-console.log(`\nESTADO personajes=${estadoP} canal=${estadoC} editorial=${estadoE} clave=${clave ? "si" : "no"} voz=${voz.voiceId || "-"}`);
+console.log(`\nESTADO personajes=${estadoP} canal=${estadoC} editorial=${estadoE} clave=${clave ? "si" : "no"} modo=${voz.modo || "lineas"}`);

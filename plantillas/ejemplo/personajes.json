@@ -1,5 +1,11 @@
 {
   "plantilla": true,
+  "narrador": {
+    "nombre": "Voz en off",
+    "voz": {
+      "voiceId": "l1zE9xgNpUTaQCZzpNJa"
+    }
+  },
   "principal": {
     "nombre": "Sofi",
     "rol": "Presentadora. Explica cada tema con ejemplos de la vida diaria.",
@@ -20,6 +26,9 @@
     "lookAlterno": {
       "outfit": "hoodie",
       "top": "#5B6CFF"
+    },
+    "voz": {
+      "voiceId": "l1zE9xgNpUTaQCZzpNJa"
     }
   },
   "secundario": {
@@ -30,6 +39,9 @@
     "colores": {
       "cuerpo": "#FFD23F",
       "luz": "#FFF1A8"
+    },
+    "voz": {
+      "voiceId": "l1zE9xgNpUTaQCZzpNJa"
     }
   },
   "extras": {
@@ -89,5 +101,14 @@
       "accent": "#FFD23F"
     }
   },
-  "miniBots": ["#8A93B8", "#A7B5A0", "#C9A0B8", "#B3A58E", "#8FB3C9"]
+  "vozExtras": {
+    "voiceId": "l1zE9xgNpUTaQCZzpNJa"
+  },
+  "miniBots": [
+    "#8A93B8",
+    "#A7B5A0",
+    "#C9A0B8",
+    "#B3A58E",
+    "#8FB3C9"
+  ]
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { estiloPersonaje } from "../theme";
 
 // Primitiva "bloque voxel": cara frontal + cara lateral derecha + cara superior.
 // Todos los personajes y varios props se construyen apilando bloques.
@@ -41,18 +42,23 @@ export const Block: React.FC<BlockProps> = ({ x, y, w, h, d = 0, c, top, side, o
   const dy = d * K;
   const topC = top === undefined ? shade(c, 0.16) : top;
   const sideC = side === undefined ? shade(c, -0.28) : side;
+  // Contorno en ambientes claros (lo define el ambiente del video)
+  const st = estiloPersonaje.contorno
+    ? { stroke: estiloPersonaje.contorno, strokeWidth: estiloPersonaje.grosor, strokeLinejoin: "round" as const }
+    : {};
   return (
     <g opacity={opacity}>
       {d > 0 && topC !== false && (
-        <polygon points={`${x},${y} ${x + d},${y - dy} ${x + w + d},${y - dy} ${x + w},${y}`} fill={topC} />
+        <polygon points={`${x},${y} ${x + d},${y - dy} ${x + w + d},${y - dy} ${x + w},${y}`} fill={topC} {...st} />
       )}
       {d > 0 && sideC !== false && (
         <polygon
           points={`${x + w},${y} ${x + w + d},${y - dy} ${x + w + d},${y + h - dy} ${x + w},${y + h}`}
           fill={sideC}
+          {...st}
         />
       )}
-      <rect x={x} y={y} width={w} height={h} rx={rx} fill={c} />
+      <rect x={x} y={y} width={w} height={h} rx={rx} fill={c} {...st} />
     </g>
   );
 };

@@ -1,0 +1,24 @@
+{
+  "proveedor": "elevenlabs",
+  "modo": "lineas",
+  "vozPorDefecto": "l1zE9xgNpUTaQCZzpNJa",
+  "dialogo": {
+    "modelo": "eleven_v3",
+    "estabilidad": 0.5,
+    "maxCaracteres": 1800
+  },
+  "lineas": {
+    "modelo": "eleven_multilingual_v2",
+    "ajustes": {
+      "stability": 0.45,
+      "similarity_boost": 0.8,
+      "style": 0.25,
+      "use_speaker_boost": true
+    },
+    "pausaMs": {
+      "mismoHablante": 180,
+      "cambioHablante": 320,
+      "cambioEscena": 450
+    }
+  }
+}

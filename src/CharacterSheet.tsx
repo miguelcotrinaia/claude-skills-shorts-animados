@@ -8,7 +8,7 @@ import { MiniBot } from "./characters/MiniBot";
 import { MINIBOT_COLORS, NOMBRE_PRINCIPAL, NOMBRE_SECUNDARIO, PERSONAS, PRINCIPAL, PRINCIPAL_ALTERNO } from "./characters/cast";
 import { color, font } from "./theme";
 import { ensureFonts } from "./fonts";
-import { aplicarPerfil, PERFILES } from "./engine/perfil";
+import { aplicarAmbiente, type AmbienteId } from "./engine/ambientes";
 import { HANDLE } from "./perfiles";
 
 ensureFonts();
@@ -44,9 +44,9 @@ const Floor: React.FC<{ y: number }> = ({ y }) => (
 );
 
 /** Hoja de personajes: para revisar el elenco (npm run personajes → out/personajes.png) */
-export const CharacterSheet: React.FC = () => {
+export const CharacterSheet: React.FC<{ ambiente?: AmbienteId }> = ({ ambiente = "grafito" }) => {
   const frame = useCurrentFrame();
-  aplicarPerfil(PERFILES.tiktok);
+  aplicarAmbiente(ambiente);
   const exprs: Expression[] = ["feliz", "sorprendido", "pensando", "enojado"];
   const sex: SecExpression[] = ["feliz", "sorprendido", "cargando", "error"];
   const extras = Object.entries(PERSONAS).slice(0, 6);

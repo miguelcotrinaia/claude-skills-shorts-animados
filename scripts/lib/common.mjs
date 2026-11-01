@@ -1,4 +1,4 @@
-// Utilidades compartidas por los scripts de voz.
+// Utilidades compartidas por los scripts (guion con diálogo: cada personaje con su voz).
 import { build } from "esbuild";
 import fs from "node:fs";
 import path from "node:path";
@@ -16,20 +16,22 @@ export const loadEnv = () => {
   }
 };
 
-/** Lee los videos definidos en src/videos (TypeScript) */
-export const loadVideos = async () => {
-  const outfile = path.join(ROOT, "node_modules", ".cache", "videos.mjs");
+/** Importa un archivo TypeScript del proyecto (lo empaqueta con esbuild) */
+export const loadTs = async (entry, nombre) => {
+  const outfile = path.join(ROOT, "node_modules", ".cache", `${nombre}.mjs`);
   await build({
-    entryPoints: [path.join(ROOT, "src", "videos", "index.ts")],
+    entryPoints: [path.join(ROOT, entry)],
     bundle: true,
     format: "esm",
     platform: "node",
     outfile,
     logLevel: "silent",
   });
-  const mod = await import(pathToFileURL(outfile).href + `?t=${Date.now()}`);
-  return mod.VIDEOS;
+  return import(pathToFileURL(outfile).href + `?t=${Date.now()}`);
 };
+
+/** Lee los videos definidos en src/videos (TypeScript) */
+export const loadVideos = async () => (await loadTs("src/videos/index.ts", "videos")).VIDEOS;
 
 export const getVideo = async (id) => {
   const videos = await loadVideos();
@@ -41,8 +43,6 @@ export const getVideo = async (id) => {
   return v;
 };
 
-export const scriptText = (spec) => spec.escenas.map((e) => e.dice.trim()).join(" ");
-
 /** Lee un JSON de perfiles/ (personajes.json o canal.json). Devuelve {} si no existe. */
 export const leerPerfil = (nombre) => {
   try {
@@ -52,12 +52,55 @@ export const leerPerfil = (nombre) => {
   }
 };
 
+const PJ = leerPerfil("personajes.json");
 const CANAL = leerPerfil("canal.json");
-const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** Idioma de 2 letras para la transcripción (es, en, pt…) */
+export const ROLES = ["narrador", "principal", "secundario", "extra"];
+/** Extra que se usa cuando una línea dice quien: "extra" sin decir cuál */
+export const EXTRA_POR_DEFECTO = Object.keys(PJ.extras ?? {})[0] ?? "extra";
+/** Idioma de 2 letras para la transcripción y la voz (es, en, pt…) */
 export const idiomaVoz = () => String(CANAL.idioma || "es").slice(0, 2).toLowerCase();
 
+// ── Argumentos tolerantes ───────────────────────────────────
+// En la terminal PowerShell de Windows, "npm run x -- --bandera valor" pierde el "--": npm se queda con
+// --bandera (la convierte en la variable npm_config_bandera) y al script solo le llega "valor".
+// Por eso aceptamos "--bandera valor", "bandera valor", "bandera=valor" y ese caso de PowerShell.
+export const tokensArgs = () =>
+  process.argv
+    .slice(2)
+    .flatMap((a) => a.replace(/^--?/, "").split("="))
+    .filter(Boolean);
+export const bandera = (tokens, nombre) => tokens.includes(nombre) || process.env[`npm_config_${nombre.replace(/-/g, "_")}`] !== undefined;
+export const esVoiceId = (t) => /^(?=.*[A-Z])(?=.*[a-z])[A-Za-z0-9]{20}$/.test(t);
+export const esRol = (t) => ROLES.includes(t);
+export const NOMBRE_ROL = { narrador: PJ.narrador?.nombre ?? "Voz en off", principal: PJ.principal?.nombre ?? "Principal", secundario: PJ.secundario?.nombre ?? "Secundario", extra: "Extra" };
+
+/** Todas las líneas del diálogo en orden: { idx, escena, quien, extra, texto, tono } */
+export const lineasDe = (spec) => {
+  const out = [];
+  spec.escenas.forEach((e, ei) =>
+    e.dialogo.forEach((l) =>
+      out.push({
+        idx: out.length,
+        escena: ei,
+        quien: l.quien,
+        extra: l.quien === "extra" ? l.extra ?? e.extra ?? EXTRA_POR_DEFECTO : undefined,
+        texto: l.texto.trim(),
+        tono: l.tono,
+      })
+    )
+  );
+  return out;
+};
+
+export const palabrasDe = (texto) => texto.split(/\s+/).filter(Boolean);
+
+export const scriptText = (spec) => lineasDe(spec).map((l) => l.texto).join(" ");
+
+/** Etiqueta para el guion: nombre del personaje, "Voz en off" o el nombre del extra */
+export const etiquetaLinea = (l) => (l.quien === "extra" ? (l.extra ?? "extra").replace(/^./, (c) => c.toUpperCase()) : NOMBRE_ROL[l.quien]);
+
+const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** Cómo se lee en voz alta: el @usuario se cambia por su versión hablada (los subtítulos siguen mostrando el @usuario) */
 export const paraVoz = (t) => {
   let out = t;
@@ -90,7 +133,6 @@ export const alignScriptToTimings = (scriptWords, timed) => {
       dp[i][j] = Math.min(sub, dp[i - 1][j] + 1, dp[i][j - 1] + 1);
     }
   }
-  // retroceso
   const map = new Array(n).fill(-1);
   let i = n;
   let j = m;
@@ -106,7 +148,6 @@ export const alignScriptToTimings = (scriptWords, timed) => {
       j--;
     }
   }
-  // tiempos (interpolando palabras del guion que no se detectaron)
   const out = scriptWords.map((w, k) => {
     const t = map[k] >= 0 ? timed[map[k]] : null;
     return { text: w, startMs: t ? t.startMs : null, endMs: t ? t.endMs : null };
@@ -117,7 +158,7 @@ export const alignScriptToTimings = (scriptWords, timed) => {
     while (p >= 0 && out[p].endMs === null) p--;
     let q = k + 1;
     while (q < out.length && out[q].startMs === null) q++;
-    const from = p >= 0 ? out[p].endMs : 0;
+    const from = p >= 0 ? out[p].endMs : timed[0]?.startMs ?? 0;
     const to = q < out.length ? out[q].startMs : from + 400 * (q - p);
     const span = q - p - 1;
     const idx = k - p - 1;
@@ -138,10 +179,39 @@ export const alignScriptToTimings = (scriptWords, timed) => {
   }));
 };
 
+/** Agrega a cada palabra quién la dice y en qué línea (por orden, palabra a palabra) */
+export const etiquetar = (captions, lineas) => {
+  const plan = lineas.flatMap((l) => palabrasDe(l.texto).map(() => ({ quien: l.quien, linea: l.idx })));
+  return captions.map((c, k) => ({ ...c, ...(plan[Math.min(k, plan.length - 1)] ?? { quien: "principal", linea: 0 }) }));
+};
+
+/** Alinea línea por línea: palabras detectadas (con tiempos) de cada línea → subtítulos etiquetados */
+export const alinearPorLinea = (lineas, detectadasPorLinea) =>
+  lineas.flatMap((l, i) =>
+    alignScriptToTimings(palabrasDe(l.texto), detectadasPorLinea[i] ?? []).map((c) => ({
+      ...c,
+      text: " " + c.text.trim(),
+      quien: l.quien,
+      linea: l.idx,
+    }))
+  ).map((c, k) => (k === 0 ? { ...c, text: c.text.trim() } : c));
+
 export const writeCaptions = (id, captions) => {
   const dir = path.join(ROOT, "public", "captions");
   fs.mkdirSync(dir, { recursive: true });
   const p = path.join(dir, `${id}.json`);
   fs.writeFileSync(p, JSON.stringify(captions, null, 1));
   return p;
+};
+
+/** Resumen: cuándo empieza cada escena */
+export const resumenEscenas = (spec, captions) => {
+  const lineas = lineasDe(spec);
+  return spec.escenas
+    .map((e, i) => {
+      const primera = lineas.find((l) => l.escena === i);
+      const c = captions.find((w) => w.linea === primera?.idx);
+      return `   escena ${i + 1} (${e.tipo}) empieza en ${c ? (c.startMs / 1000).toFixed(2) : "?"} s`;
+    })
+    .join("\n");
 };

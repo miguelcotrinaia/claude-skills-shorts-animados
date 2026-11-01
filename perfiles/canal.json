@@ -5,26 +5,31 @@
   "handleHablado": "tu canal",
   "lema": "CIENCIA DE BOLSILLO",
   "idioma": "es-PE",
-  "redes": ["TikTok", "YouTube", "Instagram"],
+  "redes": [
+    "TikTok",
+    "YouTube",
+    "Instagram"
+  ],
   "cierre": {
     "titulo": "SÍGUEME EN TODAS LAS REDES",
     "recordatorio": "+ Sígueme",
-    "cursoPorDefecto": "Más en el video relacionado"
+    "cursoPorDefecto": "Más en el próximo video"
   },
   "plataformas": {
     "tiktok": {
-      "estilo": "agil",
-      "acento": "#FF5FA2",
-      "acento2": "#FFD23F",
-      "alerta": "#FF6B5C",
-      "fondo": "#130F18"
+      "estilo": "agil"
     },
     "youtube": {
-      "estilo": "clase",
-      "acento": "#6C8CFF",
+      "estilo": "clase"
+    }
+  },
+  "fondos": {
+    "usar": "rotar",
+    "marca": {
+      "acento": "#FF5FA2",
       "acento2": "#FFD23F",
-      "alerta": "#FF6B5C",
-      "fondo": "#0E1119"
+      "oscuro": "#130F18",
+      "claro": "#FFF1EA"
     }
   }
 }

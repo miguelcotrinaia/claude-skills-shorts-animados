@@ -1,16 +1,18 @@
 {
   "name": "claude-skills-shorts-animados",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Estudio de shorts animados para TikTok y YouTube (Remotion): personajes, línea editorial y voz en off configurables",
+  "description": "Estudio de shorts animados para TikTok y YouTube (Remotion): personajes con voz propia, diálogo, cámara, fondos y línea editorial configurables",
   "type": "module",
   "scripts": {
     "dev": "remotion studio",
     "estado": "node scripts/estado.mjs",
     "perfiles": "node scripts/perfiles.mjs",
     "personajes": "remotion still Personajes out/personajes.png",
+    "ambientes": "node scripts/ambientes.mjs",
+    "revisar": "node scripts/revisar.mjs",
     "render": "node scripts/render.mjs",
-    "voz:ia": "node scripts/tts-elevenlabs.mjs",
+    "voz:ia": "node scripts/voz-ia.mjs",
     "voces": "node scripts/voces.mjs",
     "sincronizar": "node scripts/transcribe.mjs",
     "voz:propia": "node scripts/transcribe.mjs",
@@ -19,10 +21,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@remotion/bundler": "4.0.539",
     "@remotion/captions": "4.0.539",
     "@remotion/cli": "4.0.539",
     "@remotion/fonts": "4.0.539",
     "@remotion/install-whisper-cpp": "4.0.539",
+    "@remotion/renderer": "4.0.539",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "remotion": "4.0.539"

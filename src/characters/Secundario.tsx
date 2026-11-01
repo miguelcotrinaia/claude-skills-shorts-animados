@@ -8,6 +8,7 @@ import { Human, type Arms, type Expression } from "./Human";
 // Personaje secundario. Su forma sale de perfiles/personajes.json → secundario.tipo:
 //   "robot"  → robot voxel con pantalla-cara (base: orugas, ruedas o flotante)
 //   "foco"   → foco de luz con cara y brazos
+//   "panda"  → panda que va saltando (cuerpo = pelaje, manchas = negro, luz = bufanda)
 //   "humano" → otra persona (usa el mismo humano voxel que el principal)
 
 export type SecExpression =
@@ -21,7 +22,7 @@ export type SecExpression =
   | "triste"
   | "corazon";
 
-export type SecArms = "abajo" | "saludo" | "senalar" | "celebrar" | "sostener" | "escribir" | "explicar";
+export type SecArms = "abajo" | "saludo" | "senalar" | "celebrar" | "sostener" | "escribir" | "explicar" | "encoger" | "facepalm" | "senalar-arriba";
 
 export type SecProps = {
   frame: number;
@@ -30,7 +31,26 @@ export type SecProps = {
   speaking?: boolean;
   moving?: boolean;
   seed?: number;
+  /** -1 mira a su izquierda (pantalla), 1 a la derecha */
+  mirar?: number;
+  cabeza?: "asentir" | "negar" | "inclinar" | null;
+  /** 0..1 salto (sorpresa, celebración) */
+  salto?: number;
 };
+
+/** Mirada, movimiento de cabeza y salto (comunes al robot, el foco y el panda) */
+const actitud = (f: number, mirar = 0, cabeza: SecProps["cabeza"] = null, salto = 0, pivote = -40) => ({
+  mirarX: Math.max(-1, Math.min(1, mirar)) * 7,
+  cabezaT:
+    cabeza === "asentir"
+      ? `translate(0 ${Math.max(0, Math.sin(f / 3.2)) * 5})`
+      : cabeza === "negar"
+        ? `rotate(${Math.sin(f / 2.6) * 6} 0 ${pivote})`
+        : cabeza === "inclinar"
+          ? `rotate(-7 0 ${pivote})`
+          : "",
+  saltoY: -Math.max(0, salto) * 40,
+});
 
 const angles = (arms: SecArms, f: number): [number, number] => {
   const s = Math.sin(f / 7);
@@ -47,6 +67,12 @@ const angles = (arms: SecArms, f: number): [number, number] => {
       return [52 + Math.sin(f / 2) * 8, -52 - Math.cos(f / 2) * 8];
     case "explicar":
       return [36 + s * 10, -50 - Math.sin(f / 9) * 14];
+    case "encoger":
+      return [64 + s * 3, -64 - s * 3];
+    case "facepalm":
+      return [8, -160];
+    case "senalar-arriba":
+      return [8, -136 + s * 4];
     default:
       return [6 + Math.sin(f / 21) * 3, -6 - Math.sin(f / 21) * 3];
   }
@@ -169,8 +195,12 @@ const Robot: React.FC<SecProps & { body: string; led: string; base: BaseRobot }>
   led,
   base,
   seed = 3,
+  mirar,
+  cabeza,
+  salto,
 }) => {
   const hover = bob(f, 40, 2.4, seed * 7);
+  const { mirarX, cabezaT, saltoY } = actitud(f, mirar, cabeza, salto);
   const [la, ra] = angles(arms, f);
   const d = 26;
   const pulse = 0.55 + Math.abs(Math.sin(f / 9)) * 0.45 + (speaking ? 0.3 : 0);
@@ -263,7 +293,7 @@ const Robot: React.FC<SecProps & { body: string; led: string; base: BaseRobot }>
       <GlowDefs />
       <Shadow w={140} opacity={base === "flotante" ? 0.3 : 0.45} />
       <Base />
-      <g transform={`translate(0 ${hover + lift})`}>
+      <g transform={`translate(0 ${hover + lift + saltoY}) ${cabezaT}`}>
         <Block x={-14} y={-42} w={28} h={12} d={10} c="#2B3138" />
         <Arm side="L" angle={la} />
         <Block x={-58} y={-150} w={116} h={108} d={d} c={body} />
@@ -276,7 +306,9 @@ const Robot: React.FC<SecProps & { body: string; led: string; base: BaseRobot }>
         <rect x={-46} y={-140} width={92} height={58} rx={10} fill="#0A0D10" />
         <rect x={-46} y={-140} width={92} height={58} rx={10} fill="none" stroke={shade(body, -0.3)} strokeWidth={4} />
         <rect x={-40} y={-134} width={30} height={4} fill="#fff" opacity={0.08} />
-        <Ojos e={expression} ey={-118} f={f} tinta={led} brillo />
+        <g transform={`translate(${mirarX} 0)`}>
+          <Ojos e={expression} ey={-118} f={f} tinta={led} brillo />
+        </g>
         <Mouth />
         <rect x={-30} y={-74} width={60} height={22} rx={4} fill={shade(body, -0.22)} />
         {[0, 1, 2].map((i) => {
@@ -299,8 +331,12 @@ const Foco: React.FC<SecProps & { glass: string; luz: string }> = ({
   glass,
   luz,
   seed = 3,
+  mirar,
+  cabeza,
+  salto,
 }) => {
   const hover = bob(f, 38, 2.6, seed * 7);
+  const { mirarX, cabezaT, saltoY } = actitud(f, mirar, cabeza, salto, -66);
   const [la, ra] = angles(arms, f);
   const animado = expression === "feliz" || expression === "corazon" || expression === "sorprendido";
   const pulse = 0.55 + Math.abs(Math.sin(f / 9)) * 0.3 + (speaking ? 0.25 : 0) + (animado ? 0.15 : 0);
@@ -366,15 +402,15 @@ const Foco: React.FC<SecProps & { glass: string; luz: string }> = ({
       <GlowDefs />
       <Shadow w={120} />
       {/* piernas y pies */}
-      <g transform={`translate(0 ${paso > 0 ? -paso : 0})`}>
+      <g transform={`translate(0 ${(paso > 0 ? -paso : 0) + saltoY})`}>
         <Block x={-26} y={-30} w={12} h={20} d={6} c={brazo} />
         <Block x={-34} y={-12} w={26} h={12} d={12} c="#2E333C" />
       </g>
-      <g transform={`translate(0 ${paso < 0 ? paso : 0})`}>
+      <g transform={`translate(0 ${(paso < 0 ? paso : 0) + saltoY})`}>
         <Block x={14} y={-30} w={12} h={20} d={6} c={brazo} />
         <Block x={8} y={-12} w={26} h={12} d={12} c="#2E333C" />
       </g>
-      <g transform={`translate(0 ${hover})`}>
+      <g transform={`translate(0 ${hover + saltoY}) ${cabezaT}`}>
         {/* halo de luz */}
         {!apagado && <circle cx={12} cy={-142} r={96} fill={luz} opacity={0.22 * pulse} filter="url(#secHalo)" />}
         <Arm side="L" angle={la} />
@@ -400,10 +436,113 @@ const Foco: React.FC<SecProps & { glass: string; luz: string }> = ({
             <rect x={38} y={-122} width={12} height={6} fill="#F08A5D" opacity={0.6} />
           </>
         )}
-        <Ojos e={expression} ey={-142} f={f} tinta={tinta} brillo={false} ancho={22} />
+        <g transform={`translate(${mirarX} 0)`}>
+          <Ojos e={expression} ey={-142} f={f} tinta={tinta} brillo={false} ancho={22} />
+        </g>
         <Mouth />
         <Arm side="R" angle={ra} />
         <Chispas />
+      </g>
+    </g>
+  );
+};
+
+// ── Panda saltarín ───────────────────────────────────────────
+const Panda: React.FC<SecProps & { pelaje: string; manchas: string; detalle: string }> = ({
+  frame: f,
+  expression = "neutral",
+  arms = "abajo",
+  speaking = false,
+  moving = false,
+  pelaje,
+  manchas,
+  detalle,
+  seed = 3,
+  mirar,
+  cabeza,
+  salto,
+}) => {
+  // salta todo el tiempo; más alto cuando habla, se mueve o celebra
+  const P = 22;
+  const t = ((f + seed * 5) % P) / P;
+  const arco = Math.sin(Math.PI * t);
+  const alto = speaking || moving || arms === "celebrar" || expression === "feliz" ? 26 : 12;
+  const { mirarX, cabezaT, saltoY } = actitud(f, mirar, cabeza, salto, -150);
+  const hopY = -arco * alto + saltoY;
+  const suelo = Math.pow(1 - arco, 6); // 1 justo al tocar el suelo
+  const sx = 1 + suelo * 0.07;
+  const sy = 1 - suelo * 0.07;
+  const [la, ra] = angles(arms, f);
+  const tinta = "#2A1A1E";
+  const ojo = "#FFFFFF";
+
+  const Arm = ({ side, angle }: { side: "L" | "R"; angle: number }) => {
+    const px = side === "L" ? -56 : 56;
+    const py = -96;
+    return (
+      <g transform={`rotate(${angle} ${px} ${py})`}>
+        <Block x={px - 10} y={py - 4} w={20} h={40} d={10} c={manchas} />
+        <Block x={px - 11} y={py + 34} w={22} h={12} d={10} c={shade(manchas, 0.12)} />
+      </g>
+    );
+  };
+
+  const mouthOpen = talk(f, speaking);
+  const Mouth = () => {
+    const my = -114;
+    if (mouthOpen > 0.05) {
+      const h = 3 + mouthOpen * 10;
+      return <rect x={-9} y={my - 1} width={18} height={h} fill="#7A2E3A" />;
+    }
+    if (expression === "feliz" || expression === "corazon") {
+      return <polyline points={`-12,${my} -6,${my + 6} 0,${my} 6,${my + 6} 12,${my}`} fill="none" stroke={tinta} strokeWidth={4} />;
+    }
+    if (expression === "sorprendido") return <rect x={-6} y={my - 2} width={12} height={12} fill={tinta} />;
+    if (expression === "triste" || expression === "error") return <polyline points={`-10,${my + 6} 0,${my} 10,${my + 6}`} fill="none" stroke={tinta} strokeWidth={4} />;
+    return <polyline points={`-8,${my} 0,${my + 4} 8,${my}`} fill="none" stroke={tinta} strokeWidth={4} />;
+  };
+
+  const ey = -150;
+  return (
+    <g>
+      <GlowDefs />
+      <Shadow w={130 - arco * 30} opacity={0.45 - arco * 0.15} />
+      <g transform={`translate(0 ${hopY}) scale(${sx} ${sy})`}>
+        {/* patas */}
+        <Block x={-38} y={-34} w={28} h={34} d={14} c={manchas} />
+        <Block x={10} y={-34} w={28} h={34} d={14} c={manchas} />
+        <Arm side="L" angle={la} />
+        {/* cuerpo: blanco con banda negra en los hombros */}
+        <Block x={-50} y={-104} w={100} h={74} d={24} c={pelaje} />
+        <rect x={-50} y={-104} width={100} height={22} fill={manchas} />
+        <rect x={-26} y={-74} width={52} height={36} rx={6} fill={shade(pelaje, -0.06)} />
+        {/* bufanda */}
+        <Block x={-46} y={-110} w={92} h={10} d={24} c={detalle} />
+        <Block x={22} y={-102} w={12} h={26} d={6} c={detalle} />
+        <g transform={cabezaT}>
+          {/* orejas (detrás de la cabeza) */}
+          <Block x={-72} y={-216} w={36} h={34} d={14} c={manchas} />
+          <Block x={36} y={-216} w={36} h={34} d={14} c={manchas} />
+          {/* cabeza */}
+          <Block x={-58} y={-196} w={116} h={90} d={26} c={pelaje} />
+          <g transform={`translate(${mirarX} 0)`}>
+            {/* manchas de los ojos */}
+            <rect x={-42} y={ey - 16} width={34} height={30} rx={10} fill={manchas} transform={`rotate(14 -25 ${ey})`} />
+            <rect x={8} y={ey - 16} width={34} height={30} rx={10} fill={manchas} transform={`rotate(-14 25 ${ey})`} />
+            <Ojos e={expression} ey={ey} f={f} tinta={ojo} brillo={false} ancho={25} />
+            {/* nariz y hocico */}
+            <rect x={-18} y={-134} width={36} height={26} rx={8} fill={shade(pelaje, 0.4)} />
+            <rect x={-8} y={-132} width={16} height={9} rx={3} fill={tinta} />
+            <Mouth />
+            {(expression === "feliz" || expression === "corazon") && (
+              <>
+                <rect x={-52} y={-128} width={14} height={7} fill="#F08AA0" opacity={0.7} />
+                <rect x={38} y={-128} width={14} height={7} fill="#F08AA0" opacity={0.7} />
+              </>
+            )}
+          </g>
+        </g>
+        <Arm side="R" angle={ra} />
       </g>
     </g>
   );
@@ -413,6 +552,15 @@ const Foco: React.FC<SecProps & { glass: string; luz: string }> = ({
 const exprHumana = (e: SecExpression): Expression =>
   e === "cargando" ? "pensando" : e === "error" ? "sorprendido" : e === "corazon" ? "feliz" : e;
 const brazosHumanos = (a: SecArms): Arms => (a === "escribir" ? "sostener" : a);
+
+/** Recorte (viewBox) de la cara del secundario para los avatares de los subtítulos */
+const CAJAS_CARA: Record<string, string> = {
+  humano: "-72 -222 150 150",
+  foco: "-71 -228 172 172",
+  panda: "-78 -226 156 156",
+  robot: "-74 -196 160 160",
+};
+export const CAJA_CARA_SECUNDARIO = CAJAS_CARA[PERSONAJES.secundario.tipo] ?? CAJAS_CARA.robot;
 
 /** Dibuja el personaje secundario definido en perfiles/personajes.json */
 export const Secundario: React.FC<SecProps> = (props) => {
@@ -428,11 +576,17 @@ export const Secundario: React.FC<SecProps> = (props) => {
         speaking={props.speaking}
         walking={props.moving}
         seed={props.seed ?? 5}
+        mirar={props.mirar}
+        cabeza={props.cabeza}
+        salto={props.salto}
       />
     );
   }
   if (s.tipo === "foco") {
     return <Foco {...props} glass={c.cuerpo ?? "#FFD23F"} luz={c.luz ?? "#FFF1A8"} />;
+  }
+  if (s.tipo === "panda") {
+    return <Panda {...props} pelaje={c.cuerpo ?? "#F4F3EE"} manchas={c.manchas ?? "#1E1E24"} detalle={c.luz ?? "#7BD15A"} />;
   }
   return <Robot {...props} body={c.cuerpo ?? "#7C8CF8"} led={c.luz ?? color.lime} base={c.base ?? "ruedas"} />;
 };

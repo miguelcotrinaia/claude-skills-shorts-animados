@@ -1,9 +1,11 @@
 node_modules
 out
 .env
+.cache/
 whisper.cpp
 *.log
 public/audio/*
 !public/audio/LEEME.txt
-public/captions/*.backup.json
+public/captions/*
+!public/captions/.gitkeep
 .claude/settings.local.json

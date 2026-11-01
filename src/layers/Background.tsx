@@ -1,14 +1,20 @@
 import React from "react";
 import { AbsoluteFill, random, useCurrentFrame } from "remotion";
-import { color, layout } from "../theme";
+import { color, layout, lienzo } from "../theme";
 
-export const Background: React.FC<{ floor?: boolean }> = ({ floor = true }) => {
+/** Color de fondo del ambiente (fijo, fuera de la cámara) */
+export const Fondo: React.FC = () => (
+  <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 38%, ${color.bg} 0%, ${color.bg} 55%, ${color.bgDeep} 100%)` }} />
+);
+
+/** Cuadrícula, partículas y piso. Va dentro del "mundo": se mueve con la cámara. */
+export const Escenario: React.FC<{ floor?: boolean }> = ({ floor = true }) => {
   const frame = useCurrentFrame();
   const dots = React.useMemo(
     () =>
       Array.from({ length: 34 }).map((_, i) => ({
-        x: random(`x${i}`) * 1080,
-        y: random(`y${i}`) * 1920,
+        x: random(`x${i}`),
+        y: random(`y${i}`),
         r: 1.2 + random(`r${i}`) * 2.4,
         s: 0.15 + random(`s${i}`) * 0.5,
         o: 0.15 + random(`o${i}`) * 0.35,
@@ -16,8 +22,8 @@ export const Background: React.FC<{ floor?: boolean }> = ({ floor = true }) => {
     []
   );
   return (
-    <AbsoluteFill style={{ backgroundColor: color.bg }}>
-      {/* cuadrícula de fondo */}
+    <AbsoluteFill>
+      {/* cuadrícula tipo plano de arquitecto */}
       <AbsoluteFill
         style={{
           backgroundImage: `linear-gradient(${color.grid} 2px, transparent 2px), linear-gradient(90deg, ${color.grid} 2px, transparent 2px)`,
@@ -32,10 +38,10 @@ export const Background: React.FC<{ floor?: boolean }> = ({ floor = true }) => {
         }}
       />
       {/* partículas */}
-      <svg width={1080} height={1920} style={{ position: "absolute" }}>
+      <svg width={lienzo.W} height={lienzo.H} style={{ position: "absolute" }}>
         {dots.map((d, i) => {
-          const y = (d.y - frame * d.s * 2 + 1920) % 1920;
-          return <circle key={i} cx={d.x} cy={y} r={d.r} fill={color.lime} opacity={d.o * 0.6} />;
+          const y = (((d.y * lienzo.H - frame * d.s * 2) % lienzo.H) + lienzo.H) % lienzo.H;
+          return <circle key={i} cx={d.x * lienzo.W} cy={y} r={d.r} fill={color.lime} opacity={d.o * 0.5} />;
         })}
       </svg>
       {floor && (
@@ -62,12 +68,20 @@ export const Background: React.FC<{ floor?: boolean }> = ({ floor = true }) => {
           />
         </>
       )}
-      {/* viñeta */}
-      <AbsoluteFill
-        style={{
-          background: "radial-gradient(ellipse at 50% 42%, transparent 45%, rgba(0,0,0,0.55) 100%)",
-        }}
-      />
     </AbsoluteFill>
   );
 };
+
+/** Viñeta suave en los bordes (fija) */
+export const Vineta: React.FC = () => (
+  <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 42%, transparent 50%, ${color.vineta} 100%)`, pointerEvents: "none" }} />
+);
+
+/** Fondo completo sin cámara (hoja de personajes, ambientes) */
+export const Background: React.FC<{ floor?: boolean }> = ({ floor = true }) => (
+  <AbsoluteFill>
+    <Fondo />
+    <Escenario floor={floor} />
+    <Vineta />
+  </AbsoluteFill>
+);
